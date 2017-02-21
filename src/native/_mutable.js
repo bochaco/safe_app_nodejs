@@ -21,7 +21,7 @@ const bufferTypes = [t.u8Pointer, t.usize, t.usize];
 
 /**
 * One of: `Insert`, `Update`, `Delete`, `ManagePermissions`
-* @typedef {String} MDataAction 
+* @typedef {String} MDataAction
 **/
 const MDataAction = new Enum({
   Insert: 0,
@@ -123,6 +123,7 @@ module.exports = {
     MDataEntryActionsHandle
   },
   functions: {
+    mdata_create_pub_mutable_data: [t.Void, [t.AppPtr, ref.refType(t.XOR_NAME), t.u64, "pointer", "pointer"]],
     mdata_info_new_public: [t.Void, [t.AppPtr, ref.refType(t.XOR_NAME), t.u64, "pointer", "pointer"]],
     mdata_info_new_private: [t.Void, [t.AppPtr, ref.refType(t.XOR_NAME), t.u64,  "pointer", "pointer"]],
     mdata_info_random_public: [t.Void, [t.AppPtr, t.u64, "pointer", "pointer"]],
@@ -175,6 +176,7 @@ module.exports = {
   },
   api: {
     // creation
+    mdata_create_pub_mutable_data: Promisified(translateXorName, MDataInfoHandle),
     mdata_info_new_public: Promisified(translateXorName, MDataInfoHandle),
     mdata_info_new_private: Promisified(translateXorName, MDataInfoHandle),
     mdata_info_random_public: Promisified(null, MDataInfoHandle),

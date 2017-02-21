@@ -1,6 +1,6 @@
 [submodule "native"]
 	path = native
-	url = https://github.com/maidsafe/safe_client_libs.git
+	url = https://github.com/bochaco/safe_client_libs.git
 	branch = dev
 [submodule "system_uri"]
 	path = system_uri

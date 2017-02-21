@@ -57,6 +57,19 @@ describe('Mutable Data', () => {
   });
 
   describe('MutableData info', () => {
+    it.only('create public md and read its name', () =>
+        app.mutableData.createPubMutableData(TEST_NAME_PUBLIC, TAG_TYPE)
+            .then((m) => m.getNameAndTag()
+              .then((r) => {
+                should(r.name).not.be.undefined();
+                should(r.tag).equal(TAG_TYPE);
+              })
+              .then(() => app.auth.getPubSignKey()
+                .then((pk) => m.getUserPermissions(pk).should.be.fulfilled())
+              )
+            )
+    );
+
     it('create random public entry and read its name', () =>
         app.mutableData.newRandomPublic(TAG_TYPE)
             .then((m) => m.quickSetup({}).then(() => m.getNameAndTag()))
