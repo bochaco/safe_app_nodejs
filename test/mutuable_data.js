@@ -58,7 +58,7 @@ describe('Mutable Data', () => {
   });
 
   describe('MutableData info', () => {
-    it.only('create public md and read its name', () =>
+    it('HELPER: create public md and read its name', () =>
         app.mutableData.createPubMutableData(TEST_NAME_PUBLIC, TAG_TYPE)
             .then((m) => m.getNameAndTag()
               .then((r) => {
@@ -162,6 +162,43 @@ describe('Mutable Data', () => {
           should(value.version).equal(0);
         })
     );
+
+    it('NEW TEST: get a single value from md', () => app.mutableData.newRandomPublic(TAG_TYPE)
+        .then((m) => m.quickSetup(TEST_ENTRIES)
+          .then(m.get('key1')
+            .then((value) => {
+              should(value).not.be.undefined();
+              should(value.buf.toString()).equal('value1');
+              should(value.version).equal(0);
+            })))
+    );
+
+    it.only('HELPER: insert & get a single value', () => app.mutableData.newRandomPublic(TAG_TYPE)
+        .then((m) => m.quickSetup(TEST_ENTRIES)
+          .then(() => m.getEntries()
+          .then((entries) => m.insert('K', 'V')
+            .then(() => m.getEntries()
+            .then((entries2) => m.getPermissions()
+            .then((perm) => m.put(perm, entries2))
+            .then(() => entries2.get('K')
+            .then((value) => {
+              should(value).not.be.undefined();
+              should(value.buf.toString()).equal('V');
+              should(value.version).equal(0);
+            })))))))
+    );
+
+    it('testing', () => app.mutableData.newRandomPublic(TAG_TYPE)
+        .then((m) => m.quickSetup(TEST_ENTRIES).then(() => m.getEntries())
+        .then((entries) => entries.insert('newKey', 'newValue')
+          .then(() => m.getEntries()
+          .then((entries2) => entries2.get('newKey')
+          .then((value) => {
+            should(value).not.be.undefined();
+            should(value.buf.toString()).equal('newValue');
+            should(value.version).equal(0);
+          }))))
+    ));
 
     it('insert & get a single value', () => app.mutableData.newRandomPublic(TAG_TYPE)
         .then((m) => m.quickSetup(TEST_ENTRIES).then(() => m.getEntries()))
