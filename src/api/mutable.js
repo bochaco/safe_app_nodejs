@@ -469,6 +469,23 @@ class MutableData extends h.NetworkObject {
   }
 
   /**
+  * Insert a new entry.
+  *
+  * @param {(String|Buffer)} keyName
+  * @param {(String|Buffer)} value
+  * @returns {Promise} resolves once the storing is done
+  **/
+  update(keyName, value) {
+    return lib.mdata_update_entry(
+      this.app.connection,
+      this.ref,
+      keyName,
+      value
+    );
+  }
+
+
+  /**
   * Create this MutableData on the network.
   * @param {Permission} permissions - the permissions to create the mdata with
   * @param {Entries} entries - data payload to create the mdata with
