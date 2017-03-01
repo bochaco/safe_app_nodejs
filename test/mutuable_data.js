@@ -163,29 +163,17 @@ describe('Mutable Data', () => {
         })
     );
 
-    it('NEW TEST: get a single value from md', () => app.mutableData.newRandomPublic(TAG_TYPE)
-        .then((m) => m.quickSetup(TEST_ENTRIES)
-          .then(m.get('key1')
-            .then((value) => {
-              should(value).not.be.undefined();
-              should(value.buf.toString()).equal('value1');
-              should(value.version).equal(0);
-            })))
-    );
-
-    it.only('HELPER: insert & get a single value', () => app.mutableData.newRandomPublic(TAG_TYPE)
+    it.skip('HELPER: insert & get a single value', () => app.mutableData.newRandomPublic(TAG_TYPE)
         .then((m) => m.quickSetup(TEST_ENTRIES)
           .then(() => m.getEntries()
           .then((entries) => m.insert('K', 'V')
             .then(() => m.getEntries()
-            .then((entries2) => m.getPermissions()
-            .then((perm) => m.put(perm, entries2))
-            .then(() => entries2.get('K')
+            .then((entries2) => entries2.get('K')
             .then((value) => {
               should(value).not.be.undefined();
               should(value.buf.toString()).equal('V');
               should(value.version).equal(0);
-            })))))))
+            }))))))
     );
 
     it('testing', () => app.mutableData.newRandomPublic(TAG_TYPE)
