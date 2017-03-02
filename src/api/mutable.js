@@ -469,7 +469,7 @@ class MutableData extends h.NetworkObject {
   }
 
   /**
-  * Insert a new entry.
+  * Update an entry.
   *
   * @param {(String|Buffer)} keyName
   * @param {(String|Buffer)} value
@@ -688,10 +688,10 @@ class MutableDataInterface {
   * @param {Number} typeTag - the typeTag to use
   * @returns {Promise<MutableData>}
   **/
-//  createPubMutableData(name, typeTag) {
-//    return lib.mdata_create_pub_mutable_data(this.app.connection, name, typeTag)
-//          .then((m) => h.autoref(new MutableData(this.app, m)));
-//  }
+  createPubMutableData(name, typeTag) {
+    return lib.mdata_create_pub_mutable_data(this.app.connection, name, typeTag)
+          .then((m) => h.autoref(new MutableData(this.app, m)));
+  }
 
   /**
   * Create a new Permissions object.

@@ -58,19 +58,6 @@ describe('Mutable Data', () => {
   });
 
   describe('MutableData info', () => {
-    it.skip('HELPER: create public md and read its name', () =>
-        app.mutableData.createPubMutableData(TEST_NAME_PUBLIC, TAG_TYPE)
-            .then((m) => m.getNameAndTag()
-              .then((r) => {
-                should(r.name).not.be.undefined();
-                should(r.tag).equal(TAG_TYPE);
-              })
-              .then(() => app.auth.getPubSignKey()
-                .then((pk) => m.getUserPermissions(pk).should.be.fulfilled())
-              )
-            )
-    );
-
     it('create random public entry and read its name', () =>
         app.mutableData.newRandomPublic(TAG_TYPE)
             .then((m) => m.quickSetup({}).then(() => m.getNameAndTag()))
@@ -162,37 +149,6 @@ describe('Mutable Data', () => {
           should(value.version).equal(0);
         })
     );
-
-    it.only('insert & get a single value directly form the MD', () => app.mutableData.newRandomPublic(TAG_TYPE)
-        .then((m) => m.quickSetup(TEST_ENTRIES)
-          .then(() => m.insert('newKey', 'newValue'))
-          .then(() => m.get('newKey')
-          .then((value) => {
-            should(value).not.be.undefined();
-            should(value.buf.toString()).equal('newValue');
-            should(value.version).equal(0);
-          })
-          .then(() => m.update('newKey', 'updatedValue'))
-          .then(() => m.get('newKey'))
-          .then((value) => {
-            should(value).not.be.undefined();
-            should(value.buf.toString()).equal('updatedValue');
-            should(value.version).equal(1);
-          })))
-
-    );
-
-    it.skip('testing', () => app.mutableData.newRandomPublic(TAG_TYPE)
-        .then((m) => m.quickSetup(TEST_ENTRIES).then(() => m.getEntries()
-        .then((entries) => entries.insert('newKey', 'newValue')
-          .then(() => m.getEntries()
-          .then((entries2) => entries2.get('newKey')
-          .then((value) => {
-            should(value).not.be.undefined();
-            should(value.buf.toString()).equal('newValue');
-            should(value.version).equal(0);
-          })))))
-    ));
 
     it('insert & get a single value', () => app.mutableData.newRandomPublic(TAG_TYPE)
         .then((m) => m.quickSetup(TEST_ENTRIES).then(() => m.getEntries()))
@@ -510,5 +466,25 @@ describe('Mutable Data', () => {
     it('change ownership', () => {
       throw new Error('Test Not Implemented');
     });
+  });
+
+  describe('Simplified API', () => {
+    it('create, insert, update & get a single value directly from the MD', () =>
+      app.mutableData.createPubMutableData(TEST_NAME_PUBLIC, TAG_TYPE)
+        .then((m) => m.insert('newKey', 'newValue')
+          .then(() => m.get('newKey')
+          .then((value) => {
+            should(value).not.be.undefined();
+            should(value.buf.toString()).equal('newValue');
+            should(value.version).equal(0);
+          })
+          .then(() => m.update('newKey', 'updatedValue'))
+          .then(() => m.get('newKey'))
+          .then((value) => {
+            should(value).not.be.undefined();
+            should(value.buf.toString()).equal('updatedValue');
+            should(value.version).equal(1);
+          })))
+    );
   });
 });

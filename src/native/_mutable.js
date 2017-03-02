@@ -114,7 +114,7 @@ module.exports = {
     MDataEntryActionsHandle
   },
   functions: {
-    //mdata_create_pub_mutable_data: [t.Void, [t.AppPtr, ref.refType(t.XOR_NAME), t.u64, "pointer", "pointer"]],
+    mdata_create_pub_mutable_data: [t.Void, [t.AppPtr, ref.refType(t.XOR_NAME), t.u64, "pointer", "pointer"]],
     mdata_insert_entry: [t.Void, [t.AppPtr, MDataInfoHandle, t.u8Pointer, t.usize, t.u8Pointer, t.usize, 'pointer', 'pointer']],
     mdata_update_entry: [t.Void, [t.AppPtr, MDataInfoHandle, t.u8Pointer, t.usize, t.u8Pointer, t.usize, 'pointer', 'pointer']],
     mdata_info_new_public: [t.Void, [t.AppPtr, ref.refType(t.XOR_NAME), t.u64, "pointer", "pointer"]],
@@ -169,7 +169,7 @@ module.exports = {
   },
   api: {
     // creation
-    //mdata_create_pub_mutable_data: Promisified(translateXorName, MDataInfoHandle),
+    mdata_create_pub_mutable_data: Promisified(translateXorName, MDataInfoHandle),
     mdata_insert_entry: Promisified(strToBuffer, []),
     mdata_update_entry: Promisified(strToBuffer, []),
     mdata_info_new_public: Promisified(translateXorName, MDataInfoHandle),
