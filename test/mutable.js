@@ -801,6 +801,43 @@ describe('Mutable Data', () => {
           .then(() => should(md.get(consts.MD_META_KEY)).be.fulfilled())
         )
     );
+
+    it.only('iterate', function test() {
+      this.timeout(20000);
+      const MAX = 100;
+      let createdMds = [];
+      let readMds = [];
+      console.log(`Creating ${MAX} MDs...`);
+
+      for (let i = 0; i < MAX; i++) {
+        let f = app.mutableData.newRandomPublic(TAG_TYPE)
+            .then((m) => m.quickSetup({name: `MD-${i}`}))
+            .then((md) => {
+              console.log(`DONE with MD[${i}]`);
+              return md;
+            })
+        createdMds.push(f);
+      }
+
+      return Promise.all(createdMds)
+        .then((mds) => {
+          console.log("Num of MDs created:", mds.length)
+          for (let i = 0; i < MAX; i++) {
+            let f = mds[i].get('name')
+                .then((name) => {
+                  console.log(`NAME value in MD-${i} :`, name.buf.toString());
+                  return name.buf.toString();
+                })
+            readMds.push(f);
+          }
+
+          return Promise.all(readMds)
+            .then((ns) => {
+                console.log("Values read:", ns)
+            })
+        })
+    });
+
   });
 
   describe('NFS emulation', () => {
