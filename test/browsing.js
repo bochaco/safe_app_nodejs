@@ -27,7 +27,6 @@ const createRandomDomain = async (content, path, service, authedApp) => {
     .then(() => domain);
 };
 
-
 const createRandomPrivateServiceDomain = async (content, path, service) => {
   const domain = `test_${Math.round(Math.random() * 100000)}`;
   const app = await createAuthenticatedTestApp();
@@ -48,6 +47,20 @@ const createRandomPrivateServiceDomain = async (content, path, service) => {
                   })));
       }))
     .then(() => domain);
+};
+
+const createWebSite = async (content, path, authedApp) => {
+  const app = authedApp || await createAuthenticatedTestApp();
+  return app.mutableData.newRandomPublic(consts.TAG_TYPE_WWW)
+    .then((serviceMdata) => serviceMdata.quickSetup()
+      .then(() => {
+        const nfs = serviceMdata.emulateAs('NFS');
+        // let's write the file
+        return nfs.create(content)
+          .then((file) => nfs.insert(path || '/index.html', file))
+          .then(() => serviceMdata.getNameAndTag())
+          .then((res) => res.name.buffer);
+      }));
 };
 
 /**
@@ -328,6 +341,34 @@ describe('Browsing', () => {
             .be.rejectedWith('Invalid range start value')
         ));
     }); // .timeout(20000);
+  });
+
+  describe('WebFetch with xorname', () => {
+    it('fetch web service with xorname', async () => {
+      const content = `hello world, on ${Math.round(Math.random() * 100000)}`;
+      return createWebSite(content, '/index.html')
+        .then((siteAddr) => {
+          const mdXorname = siteAddr.toString('hex');
+          return createAnonTestApp()
+            .then((app) => app.webFetch(`safe-addr://${mdXorname}`))
+            .then((data) => {
+              should(data.body.toString()).equal(content);
+            });
+        });
+    }).timeout(20000);
+
+    it('fetch web service with xorname and path', async () => {
+      const content = `hello world, on ${Math.round(Math.random() * 100000)}`;
+      return createWebSite(content, '/myfolder/index.html')
+        .then((siteAddr) => {
+          const mdXorname = siteAddr.toString('hex');
+          return createAnonTestApp()
+            .then((app) => app.webFetch(`safe-addr://${mdXorname}/myfolder`))
+            .then((data) => {
+              should(data.body.toString()).equal(content);
+            });
+        });
+    }).timeout(20000);
   });
 
   describe('errors', () => {

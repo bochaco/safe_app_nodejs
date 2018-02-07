@@ -9,6 +9,80 @@ const consts = require('./consts');
 const makeFfiError = require('./native/_error.js');
 const errConst = require('./error_const');
 
+const fetchFromServiceCont = async (serviceMd, path, options) => {
+  const ERR_FILE_NOT_FOUND = -301;
+  const handleNfsFetchException = (error) => {
+    if (error.code !== ERR_FILE_NOT_FOUND) {
+      throw error;
+    }
+  };
+
+  const emulation = await serviceMd.emulateAs('NFS');
+  let file;
+  let filePath;
+  try {
+    filePath = path;
+    file = await emulation.fetch(filePath);
+  } catch (e) {
+    handleNfsFetchException(e);
+  }
+  if (!file && path.startsWith('/')) {
+    try {
+      filePath = path.replace('/', '');
+      file = await emulation.fetch(filePath);
+    } catch (e) {
+      handleNfsFetchException(e);
+    }
+  }
+  if (!file && path.split('/').length > 1) {
+    try {
+      filePath = `${path}/${consts.INDEX_HTML}`;
+      file = await emulation.fetch(filePath);
+    } catch (e) {
+      handleNfsFetchException(e);
+    }
+  }
+  if (!file) {
+    filePath = `${path}/${consts.INDEX_HTML}`.replace('/', '');
+    file = await emulation.fetch(filePath);
+  }
+  const openedFile = await emulation.open(file, consts.pubConsts.NFS_FILE_MODE_READ);
+  let range;
+  let start = consts.pubConsts.NFS_FILE_START;
+  let end;
+  let fileSize;
+  let lengthToRead = consts.pubConsts.NFS_FILE_END;
+  let endByte;
+
+  // TODO: how do we handle multipart Reqs
+  if (options && options.range && typeof options.range.start !== 'undefined') {
+    range = options.range;
+    start = range.start;
+    fileSize = await openedFile.size();
+    end = range.end || fileSize - 1;
+
+    lengthToRead = (end - start) + 1; // account for 0 index
+  }
+  const data = await openedFile.read(start, lengthToRead);
+  const mimeType = mime.getType(nodePath.extname(filePath)) || 'application/octet-stream';
+
+  const response = {
+    headers: {
+      'Content-Type': mimeType
+    },
+    body: data
+  };
+
+  if (range) {
+    endByte = (end === fileSize) ? fileSize - 1 : end;
+    response.headers['Content-Range'] = `bytes ${start}-${endByte}/${fileSize}`;
+    response.headers['Content-Length'] = lengthToRead;
+  }
+
+  return response;
+};
+
+
 /**
  * Holds one sessions with the network and is the primary interface to interact
  * with the network. As such it also provides all API-Providers connected through
@@ -162,9 +236,16 @@ class SAFEApp extends EventEmitter {
     }
 
     path = tokens.join('/') || `/${consts.INDEX_HTML}`;
+
+    if (parsedUrl.protocol === 'safe-addr:') {
+      const xorname = Buffer.from(hostname, 'hex');
+      const serviceMd = await this.mutableData.newPublic(xorname, consts.TAG_TYPE_WWW);
+      // Now just read the website's container
+      return Promise.resolve(fetchFromServiceCont(serviceMd, path, options));
+    }
+
     const ERR_NO_SUCH_DATA = -103;
     const ERR_NO_SUCH_ENTRY = -106;
-    const ERR_FILE_NOT_FOUND = -301;
 
     // lets' unpack
     const hostParts = hostname.split('.');
@@ -188,19 +269,13 @@ class SAFEApp extends EventEmitter {
         }
       };
 
-      const handleNfsFetchException = (error) => {
-        if (error.code !== ERR_FILE_NOT_FOUND) {
-          throw error;
-        }
-      };
-
       try {
         const serviceInfo = await getServiceInfo(lookupName, serviceName);
         if (serviceInfo.buf.length === 0) {
           const error = new Error();
           error.code = ERR_NO_SUCH_ENTRY;
           error.message = 'Service not found';
-          return reject(error);
+          throw error;
         }
         let serviceMd;
         try {
@@ -208,75 +283,14 @@ class SAFEApp extends EventEmitter {
         } catch (e) {
           serviceMd = await this.mutableData.newPublic(serviceInfo.buf, consts.TAG_TYPE_WWW);
         }
-        const emulation = await serviceMd.emulateAs('NFS');
-        let file;
-        let filePath;
-        try {
-          filePath = path;
-          file = await emulation.fetch(filePath);
-        } catch (e) {
-          handleNfsFetchException(e);
-        }
-        if (!file && path.startsWith('/')) {
-          try {
-            filePath = path.replace('/', '');
-            file = await emulation.fetch(filePath);
-          } catch (e) {
-            handleNfsFetchException(e);
-          }
-        }
-        if (!file && path.split('/').length > 1) {
-          try {
-            filePath = `${path}/${consts.INDEX_HTML}`;
-            file = await emulation.fetch(filePath);
-          } catch (e) {
-            handleNfsFetchException(e);
-          }
-        }
-        if (!file) {
-          filePath = `${path}/${consts.INDEX_HTML}`.replace('/', '');
-          file = await emulation.fetch(filePath);
-        }
-        const openedFile = await emulation.open(file, consts.pubConsts.NFS_FILE_MODE_READ);
-        let range;
-        let start = consts.pubConsts.NFS_FILE_START;
-        let end;
-        let fileSize;
-        let lengthToRead = consts.pubConsts.NFS_FILE_END;
-        let endByte;
 
-        // TODO: how do we handle multipart Reqs
-        if (options && options.range && typeof options.range.start !== 'undefined') {
-          range = options.range;
-          start = range.start;
-          fileSize = await openedFile.size();
-          end = range.end || fileSize - 1;
-
-          lengthToRead = (end - start) + 1; // account for 0 index
-        }
-        const data = await openedFile.read(start, lengthToRead);
-        const mimeType = mime.getType(nodePath.extname(filePath)) || 'application/octet-stream';
-
-        const response = {
-          headers: {
-            'Content-Type': mimeType
-          },
-          body: data
-        };
-
-        if (range) {
-          endByte = (end === fileSize) ? fileSize - 1 : end;
-          response.headers['Content-Range'] = `bytes ${start}-${endByte}/${fileSize}`;
-          response.headers['Content-Length'] = lengthToRead;
-        }
-
-        resolve(response);
+        // Now just read the website's container
+        resolve(fetchFromServiceCont(serviceMd, path, options));
       } catch (e) {
         reject(e);
       }
     });
   }
-
 
   /**
   * @private
