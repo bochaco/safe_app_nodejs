@@ -44,6 +44,14 @@ describe('getPublicNames', () => {
       }
     });
 
+  it('should return empty array of getPublicNames when none set', async () => {
+    const authedApp = await h.publicNamesTestApp;
+    const webIds = await authedApp.web.getPublicNames();
+
+    should(webIds).be.a.Array();
+    should(webIds).have.length(0);
+  });
+
 
   it('should return the array of getPublicNames (a length greater than 0)', async () => {
     const authedApp = await h.publicNamesTestApp;
@@ -56,7 +64,7 @@ describe('getPublicNames', () => {
     const webIds = await authedApp.web.getPublicNames();
 
     should(webIds).be.a.Array();
-    should(webIds.length).be.greaterThan(0);
+    should(webIds).have.length(3);
   });
 });
 

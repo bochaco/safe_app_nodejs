@@ -133,7 +133,7 @@ describe('Browsing', () => {
     };
 
     const xorname = h.createRandomXorName();
-    const md = await publicNamesTestApp.mutableData.newPublic(xorname, TYPE_TAG);
+    const md = await app.mutableData.newPublic(xorname, TYPE_TAG);
     await md.quickSetup({});
     const webId = await md.emulateAs('WebID');
     await webId.create(profile);
