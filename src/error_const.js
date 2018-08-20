@@ -26,6 +26,18 @@ module.exports = {
   },
 
   /**
+   * @name ERR_DATA_GIVEN_ALREADY_EXISTS
+   * @type {object}
+   * @description Thrown natively when data already exists at the target address on network.
+   * @property {number} code -104
+   * @property {string} msg
+   */
+  ERR_DATA_GIVEN_ALREADY_EXISTS: {
+    code: -104,
+    msg: 'Data already exists at the target address'
+  },
+
+  /**
    * @name ERR_NO_SUCH_ENTRY
    * @type {object}
    * @description Thrown natively when entry on found in MutableData.
@@ -352,4 +364,40 @@ module.exports = {
     Pass --enable-experimental-apis argument to the application, or programatically
     set the 'enableExperimentalApis' flag in the initialisation options to enable them.`
   },
+
+  /**
+   * @name @INVALID_RDF_LOCATION
+   * @type {Object}
+   * @description RDF Location provided is not and object with name/typeTag
+   * @property {number} code 1022
+   * @property {function} msg
+   */
+  INVALID_RDF_LOCATION: {
+    code: 1022,
+    msg: 'RDF Location _must_ be an object of the form { name, typeTag }.'
+  },
+
+  /**
+   * @name @INVALID_SUBDOMAIN
+   * @type {Object}
+   * @description RDF Location provided is not and object with name/typeTag
+   * @property {number} code 1023
+   * @property {function} msg
+   */
+  INVALID_SUBDOMAIN: {
+    code: 1023,
+    msg: 'A subdomain string _must_ be passed for adding services to a publicName.'
+  },
+
+  /**
+   * @name @MISSING_RDF_ID
+   * @type {Object}
+   * @description RDF object does not have an ID.
+   * @property {number} code 1024
+   * @property {function} msg
+   */
+  MISSING_RDF_ID: {
+    code: 1024,
+    msg: 'No ID has been found in the RDF graph.'
+  }
 };

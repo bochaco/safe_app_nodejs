@@ -133,6 +133,14 @@ class SAFEApp extends EventEmitter {
   }
 
   /**
+   * Get the public names
+   * @return {WebInterface} Manage Web RDF Data.
+   */
+  get web() {
+    return this._web;
+  }
+
+  /**
   * get the Crypto instance connected to this session
   * @returns {CryptoInterface}
   */
@@ -168,8 +176,8 @@ class SAFEApp extends EventEmitter {
     return webFetch.call(this, url, options);
   }
 
-  fetch(url) {
-    return fetch.call(this, url);
+  fetch(url, options) {
+    return fetch.call(this, url, options);
   }
 
   /**

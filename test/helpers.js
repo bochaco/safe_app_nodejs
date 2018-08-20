@@ -58,6 +58,16 @@ const createRandomInvalidSecKey = () => crypto.randomBytes(30);
 const createRandomInvalidXor = () => crypto.randomBytes(30);
 const createRandomInvalidNonce = () => crypto.randomBytes(30);
 
+
+const publicNamesContainerPerms = {
+  // _public as used for webId directory for now...
+  _public: ['Insert', 'Update', 'Delete'],
+  _publicNames: ['Insert', 'Update', 'Delete'],
+};
+
+const publicNamesTestApp = createAuthenticatedTestApp(null, publicNamesContainerPerms);
+
+
 module.exports = {
   App,
   appInfo,
@@ -72,5 +82,6 @@ module.exports = {
   createRandomNonce,
   createRandomInvalidSecKey,
   createRandomInvalidXor,
-  createRandomInvalidNonce
+  createRandomInvalidNonce,
+  publicNamesTestApp
 };
