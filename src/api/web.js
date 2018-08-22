@@ -278,7 +278,8 @@ class WebInterface {
     directoryRDF.add(newResourceName, vocabs.SAFETERMS('uri'), directoryRDF.literal(webIdUri));
     directoryRDF.add(newResourceName, vocabs.SAFETERMS('typeTag'), directoryRDF.literal(webIdUri));
 
-    await directoryRDF.commit();
+    const encryptThis = true;
+    await directoryRDF.commit(encryptThis);
   }
 
 

@@ -14,27 +14,6 @@ const consts = require('../../consts');
 // const errConst = require('../../error_const');
 const { parse: parseUrl } = require('url');
 
-// TODO: perhaps we want a set of functions which are LDPC helpers,
-// so we can have them provide us all it's needed if in the future
-// we want to expose an LDP RESTFul API in the webFetch.
-// postRDF(contentType, data, slug?, linkHeader?, parentLDPC?)
-// putRDF(contentType, data, slug?, linkHeader?, parentLDPC?)
-// deleteRDF(contentType, data, slug?, linkHeader?, parentLDPC?)
-//
-// where linkHeader can be:
-// to create an LDP-BC: <http://www.w3.org/ns/ldp#BasicContainer>; rel="type"
-// to create an LDP-RS: <http://www.w3.org/ns/ldp#Resource>; rel="type"
-// to create an LDP-DC: <http://www.w3.org/ns/ldp#DirectContainer>; rel="type"
-// to create an LDP-IC: <http://www.w3.org/ns/ldp#IndirectContainer>; rel="type"
-//
-// and where contentType can be RDF format or something else:
-// if it's RDF we use RDF emulation
-// it it's something else we store it as ImmutableData
-//
-// and "eTag"/"If-Match" headers might be needed and generated
-// from a hash of the MD's version
-
-
 // Helper for creating a WebID profile document RDF resource
 //
 // TODO: Webid URI validation: https://github.com/joshuef/webIdManager/issues/2
@@ -137,7 +116,6 @@ class WebID {
 
     // TODO: grab name and add displayName here...
     await app.web.addWebIdToDirectory(profile.uri, displayName);
-
     const subdomainsRdfLocation =
       await app.web.addServiceToSubdomain(subdomain, publicName, webIdLocation);
 

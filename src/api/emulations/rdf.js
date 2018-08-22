@@ -50,7 +50,9 @@ class RDF {
 
   // param is to accept list of id's to fetch
   // e.g. ['safe://mywebid.mypubname', 'safe://mypubname']
-  async nowOrWhenFetched(ids) {
+  async nowOrWhenFetched(ids /* , toDecrypt = false */) {
+    // FIXME: we need to use the toDecrypt value to decrypt the entries
+
     let entriesList = [];
     let entries;
 
@@ -210,7 +212,7 @@ class RDF {
         if (toEncrypt) {
           try {
             const decryptedKey = await mData.decrypt(entry.key);
-            keyToCheck = await decryptedKey.toString();
+            keyToCheck = decryptedKey.toString();
           } catch (e) {
             console.error('Error decrypting MD key in rdf.commit.', e);
           }
