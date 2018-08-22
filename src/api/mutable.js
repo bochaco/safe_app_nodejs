@@ -19,6 +19,8 @@ const { PubSignKey } = require('./crypto');
 const { pubConsts: CONSTANTS } = require('../consts');
 const errConst = require('../error_const');
 const makeError = require('../native/_error.js');
+const multihash = require('multihashes');
+const CID = require('cids');
 
 /**
 * Holds the permissions of a MutableData object
@@ -375,9 +377,18 @@ class MutableData extends h.NetworkObject {
   * @returns {Promise<NameAndTag>} the XoR-name and type tag
   */
   getNameAndTag() {
+    const address = Buffer.from(this.ref.name);
+    // console.log("MD XORNAME:", address);
+    const encodedHash = multihash.encode(address, 'sha3-256');
+    // console.log("HASH GENERATED:", encodedHash)
+    const cid = new CID(1, 'raw', encodedHash);
+    const cidStr = cid.toBaseEncodedString('base16');
+    // console.log("CID:", cidStr, cidStr.length)
+
     return Promise.resolve({
       name: this.ref.name,
-      typeTag: this.ref.typeTag
+      typeTag: this.ref.typeTag,
+      cid: cidStr
     });
   }
 

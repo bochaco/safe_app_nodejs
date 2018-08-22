@@ -383,5 +383,41 @@ module.exports = {
   MISSING_RDF_ID: {
     code: 1023,
     msg: 'No ID has been found in the RDF graph.'
-  }
+  },
+
+  /**
+   * @name @ERR_PUB_NAME_NOT_FOUND
+   * @type {Object}
+   * @description the public name was not found on the network
+   * @property {number} code 1024
+   * @property {function} msg
+   */
+  ERR_PUB_NAME_NOT_FOUND: {
+    code: 1024,
+    msg: 'Requested public name is not found.'
+  },
+
+  /**
+   * @name @ERR_SERVICE_NOT_FOUND
+   * @type {Object}
+   * @description the service/subdomain was not found
+   * @property {number} code 1025
+   * @property {function} msg
+   */
+  ERR_SERVICE_NOT_FOUND: {
+    code: 1025,
+    msg: 'Requested service is not found.'
+  },
+
+  /**
+   * @name @ERR_CONTENT_NOT_FOUND
+   * @type {Object}
+   * @description the content was not found at the address provided
+   * @property {number} code 1026
+   * @property {function} msg
+   */
+  ERR_CONTENT_NOT_FOUND: {
+    code: 1026,
+    msg: 'No content found at requested address.'
+  },
 };
