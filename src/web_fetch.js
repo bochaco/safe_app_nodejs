@@ -241,7 +241,7 @@ async function fetch(url) {
   if (!parsedUrl.protocol) return Promise.reject(makeError(errConst.INVALID_URL.code, `${errConst.INVALID_URL.msg}, complete with protocol.`));
 
   // let's decompose and normalise the path
-  const originalPath = parsedUrl.pathname;
+  const originalPath = (parsedUrl.pathname === '/') ? '' : parsedUrl.pathname;
   let path = originalPath ? decodeURI(originalPath) : '';
   const tokens = path.split('/');
   if (!tokens[tokens.length - 1] && tokens.length > 1) {

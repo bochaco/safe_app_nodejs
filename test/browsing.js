@@ -534,7 +534,7 @@ describe('Browsing', () => {
       return should(fetchCall).be.rejectedWith(errConst.ERR_CONTENT_NOT_FOUND.msg);
     });
 
-    it('valid MD CID same as published public name, invalid type tag', async () => {
+    it('valid MD CID same as published public name, invalid type tag, rejected', async () => {
       const md = await app.mutableData.newRandomPublic(TYPE_TAG);
       await md.quickSetup();
       const info = await md.getNameAndTag();
@@ -545,7 +545,7 @@ describe('Browsing', () => {
       return should(fetchCall).be.rejectedWith(errConst.ERR_CONTENT_NOT_FOUND.msg);
     });
 
-    it('valid MD CID and type tag on NFS container, rejected', async () => {
+    it('valid MD CID and type tag on NFS container', async () => {
       const content = `hello world, on ${Math.round(Math.random() * 100000)}`;
       const { serviceMd } = await createRandomDomain(content, 'index.html', '');
       const info = await serviceMd.getNameAndTag();
@@ -575,6 +575,18 @@ describe('Browsing', () => {
       await md.quickSetup({ key1: value });
       const info = await md.getNameAndTag();
       const data = await unregisteredApp.webFetch(`safe://${info.cid}:${info.typeTag}`);
+      return should(data).eql({
+        headers: { 'Content-Type': 'application/json' },
+        body: { key1: { value, version: 0 } }
+      });
+    });
+
+    it('valid MD CID and type tag on non-NFS container with empty path', async () => {
+      const value = `hello world, on ${Math.round(Math.random() * 100000)}`;
+      const md = await app.mutableData.newRandomPublic(TYPE_TAG);
+      await md.quickSetup({ key1: value });
+      const info = await md.getNameAndTag();
+      const data = await unregisteredApp.webFetch(`safe://${info.cid}:${info.typeTag}/`);
       return should(data).eql({
         headers: { 'Content-Type': 'application/json' },
         body: { key1: { value, version: 0 } }
