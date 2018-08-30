@@ -15,8 +15,7 @@ const helpers = require('../helpers');
 const lib = require('../native/lib');
 const multihash = require('multihashes');
 const CID = require('cids');
-
-const CODEC_RAW = 'raw';
+const consts = require('../consts');
 
 /**
 * Holds the connection to read an existing ImmutableData
@@ -100,7 +99,7 @@ class Writer extends helpers.NetworkObject {
   * @param {CipherOpt} cipherOpt the Cipher Opt to encrypt data with
   * @returns {Promise<String>} the address to the data once written to the network
   */
-  close(cipherOpt, getCid, codec = CODEC_RAW) {
+  close(cipherOpt, getCid, codec = consts.CID_DEFAULT_CODEC) {
     // TODO: support to provide the content type when requesting CID
     return lib.idata_close_self_encryptor(this.app.connection,
                                           this.ref,
@@ -112,12 +111,13 @@ class Writer extends helpers.NetworkObject {
 
         const address = Buffer.from(name);
         // console.log("ImmMD XORNAME:", address);
-        const encodedHash = multihash.encode(address, 'sha3-256');
+        const encodedHash = multihash.encode(address, consts.CID_HASH_FN);
         // console.log("HASH GENERATED:", encodedHash)
         // TODO: support different codecs, multihash seems to support only 'raw' at the moment,
         // we might need to fork the multihash project to add a list or send a PR
-        const cid = new CID(1, multihash.isValidCode(codec) ? codec : CODEC_RAW, encodedHash);
-        const cidStr = cid.toBaseEncodedString('base16');
+        const cid = new CID(consts.CID_VERSION, multihash.isValidCode(codec) ?
+                                  codec : consts.CID_DEFAULT_CODEC, encodedHash);
+        const cidStr = cid.toBaseEncodedString(consts.CID_BASE_ENCODING);
 
         return {
           name,

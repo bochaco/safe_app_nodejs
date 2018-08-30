@@ -16,11 +16,13 @@ const lib = require('../native/lib');
 const t = require('../native/types');
 const emulations = require('./emulations');
 const { PubSignKey } = require('./crypto');
-const { pubConsts: CONSTANTS } = require('../consts');
+const consts = require('../consts');
 const errConst = require('../error_const');
 const makeError = require('../native/_error.js');
 const multihash = require('multihashes');
 const CID = require('cids');
+
+const CONSTANTS = consts.pubConsts;
 
 /**
 * Holds the permissions of a MutableData object
@@ -379,10 +381,10 @@ class MutableData extends h.NetworkObject {
   getNameAndTag() {
     const address = Buffer.from(this.ref.name);
     // console.log("MD XORNAME:", address);
-    const encodedHash = multihash.encode(address, 'sha3-256');
+    const encodedHash = multihash.encode(address, consts.CID_HASH_FN);
     // console.log("HASH GENERATED:", encodedHash)
-    const cid = new CID(1, 'raw', encodedHash);
-    const cidStr = cid.toBaseEncodedString('base16');
+    const cid = new CID(consts.CID_VERSION, consts.CID_DEFAULT_CODEC, encodedHash);
+    const cidStr = cid.toBaseEncodedString(consts.CID_BASE_ENCODING);
     // console.log("CID:", cidStr, cidStr.length)
 
     return Promise.resolve({

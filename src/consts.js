@@ -132,6 +132,11 @@ const SYSTEM_URI_LIB_FILENAME = {
 
 const INDEX_HTML = 'index.html';
 
+const CID_VERSION = 1;
+const CID_BASE_ENCODING = 'base32z';
+const CID_HASH_FN = 'sha3-256';
+const CID_DEFAULT_CODEC = 'raw';
+
 module.exports = {
   TAG_TYPE_DNS,
   TAG_TYPE_WWW,
@@ -149,5 +154,10 @@ module.exports = {
   pubConsts,
 
   SAFE_APP_LIB_FILENAME,
-  SYSTEM_URI_LIB_FILENAME
+  SYSTEM_URI_LIB_FILENAME,
+
+  CID_VERSION,
+  CID_BASE_ENCODING,
+  CID_HASH_FN,
+  CID_DEFAULT_CODEC,
 };

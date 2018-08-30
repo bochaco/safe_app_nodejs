@@ -586,7 +586,7 @@ describe('Browsing', () => {
       const md = await app.mutableData.newRandomPublic(TYPE_TAG);
       await md.quickSetup({ key1: value });
       const info = await md.getNameAndTag();
-      const data = await unregisteredApp.webFetch(`safe://${info.cid}:${info.typeTag}/`);
+      const data = await unregisteredApp.webFetch(`safe://${info.cid.toUpperCase()}:${info.typeTag}/`);
       return should(data).eql({
         headers: { 'Content-Type': 'application/json' },
         body: { key1: { value, version: 0 } }
