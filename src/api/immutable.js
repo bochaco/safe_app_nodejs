@@ -97,10 +97,11 @@ class Writer extends helpers.NetworkObject {
   * Close and write the immutable Data to the network.
   *
   * @param {CipherOpt} cipherOpt the Cipher Opt to encrypt data with
+  * @param {Boolean} getCid if the CID shall also be returned along with the xor address
+  * @param {String} mimeType the MIME type to encode in the CID as the codec of the content
   * @returns {Promise<String>} the address to the data once written to the network
   */
-  close(cipherOpt, getCid, codec = consts.CID_DEFAULT_CODEC) {
-    // TODO: support to provide the content type when requesting CID
+  close(cipherOpt, getCid, mimeType) {
     return lib.idata_close_self_encryptor(this.app.connection,
                                           this.ref,
                                           cipherOpt.ref)
@@ -110,13 +111,9 @@ class Writer extends helpers.NetworkObject {
         }
 
         const address = Buffer.from(name);
-        // console.log("ImmMD XORNAME:", address);
         const encodedHash = multihash.encode(address, consts.CID_HASH_FN);
-        // console.log("HASH GENERATED:", encodedHash)
-        // TODO: support different codecs, multihash seems to support only 'raw' at the moment,
-        // we might need to fork the multihash project to add a list or send a PR
-        const cid = new CID(consts.CID_VERSION, multihash.isValidCode(codec) ?
-                                  codec : consts.CID_DEFAULT_CODEC, encodedHash);
+        const codec = mimeType ? `${consts.CID_MIME_CODEC_PREFIX}${mimeType}` : consts.CID_DEFAULT_CODEC;
+        const cid = new CID(consts.CID_VERSION, codec, encodedHash);
         const cidStr = cid.toBaseEncodedString(consts.CID_BASE_ENCODING);
 
         return {

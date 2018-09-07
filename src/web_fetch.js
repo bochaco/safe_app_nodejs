@@ -208,7 +208,12 @@ async function getContainerFromCid(cidString, typeTag) {
     // console.log('CID:', cid);
     const encodedHash = multihash.decode(cid.multihash);
     const address = encodedHash.digest;
-    codec = cid.codec;
+
+    codec = cid.codec.replace(consts.CID_MIME_CODEC_PREFIX, '');
+    if (codec === consts.CID_DEFAULT_CODEC) {
+      codec = consts.MIME_TYPE_OCTET_STREAM;
+    }
+
     if (typeTag) {
       // it's supposed to be a MutableData
       // console.log('VALID MD CID - MULTIHASH:', address);
@@ -263,7 +268,6 @@ async function fetch(url) {
       const content = await getContainerFromCid.call(this, publicName,
                                                       parseInt(parsedUrl.port, 10));
       if (content.type === 'MD') {
-        // console.log('MD FOUND');
         return {
           content: content.content,
           type: 'NFS',
@@ -273,7 +277,6 @@ async function fetch(url) {
         };
       }
       // content.type === 'ImmD'
-      // console.log('ImmD FOUND');
       // we simply then return the ImmD object so the content can be read
       return {
         content: content.content,

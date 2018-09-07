@@ -136,6 +136,7 @@ const CID_VERSION = 1;
 const CID_BASE_ENCODING = 'base32z';
 const CID_HASH_FN = 'sha3-256';
 const CID_DEFAULT_CODEC = 'raw';
+const CID_MIME_CODEC_PREFIX = 'mime/';
 
 module.exports = {
   TAG_TYPE_DNS,
@@ -160,4 +161,5 @@ module.exports = {
   CID_BASE_ENCODING,
   CID_HASH_FN,
   CID_DEFAULT_CODEC,
+  CID_MIME_CODEC_PREFIX,
 };

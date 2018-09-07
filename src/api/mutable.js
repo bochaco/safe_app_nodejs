@@ -380,12 +380,9 @@ class MutableData extends h.NetworkObject {
   */
   getNameAndTag() {
     const address = Buffer.from(this.ref.name);
-    // console.log("MD XORNAME:", address);
     const encodedHash = multihash.encode(address, consts.CID_HASH_FN);
-    // console.log("HASH GENERATED:", encodedHash)
     const cid = new CID(consts.CID_VERSION, consts.CID_DEFAULT_CODEC, encodedHash);
     const cidStr = cid.toBaseEncodedString(consts.CID_BASE_ENCODING);
-    // console.log("CID:", cidStr, cidStr.length)
 
     return Promise.resolve({
       name: this.ref.name,

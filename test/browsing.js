@@ -601,27 +601,24 @@ describe('Browsing', () => {
       const immDataAddr = await idWriter.close(cipherOpt, true);
       const data = await unregisteredApp.webFetch(`safe://${immDataAddr.cid}`);
       should(data.body.toString()).equal(content);
-      should(data.headers).eql({ 'Content-Type': 'raw' });
+      should(data.headers).eql({ 'Content-Type': 'application/octet-stream' });
     });
 
-    it('valid ImmD CID with invalid codec code', async () => {
+    it('valid ImmD CID with invalid codec code, rejected', async () => {
       const content = `hello world, on ${Math.round(Math.random() * 100000)}`;
       const idWriter = await app.immutableData.create();
       await idWriter.write(content);
       const cipherOpt = await app.cipherOpt.newPlainText();
-      const immDataAddr = await idWriter.close(cipherOpt, true, 'invalid-codec');
-      const data = await unregisteredApp.webFetch(`safe://${immDataAddr.cid}`);
-      should(data.body.toString()).equal(content);
-      should(data.headers).eql({ 'Content-Type': 'raw' });
+      const closeCall = idWriter.close(cipherOpt, true, 'invalid-codec');
+      return should(closeCall).be.rejectedWith('Codec `mime/invalid-codec` not found');
     });
 
-    // different codec are not supported yet, only 'raw' is now supported
-    it.skip('valid ImmD CID with valid codec code', async () => {
+    it('valid ImmD CID with valid codec code', async () => {
       const content = `hello world, on ${Math.round(Math.random() * 100000)}`;
       const idWriter = await app.immutableData.create();
       await idWriter.write(content);
       const cipherOpt = await app.cipherOpt.newPlainText();
-      const immDataAddr = await idWriter.close(cipherOpt, true, 'png');
+      const immDataAddr = await idWriter.close(cipherOpt, true, 'image/png');
       const data = await unregisteredApp.webFetch(`safe://${immDataAddr.cid}`);
       should(data.body.toString()).equal(content);
       should(data.headers).eql({ 'Content-Type': 'image/png' });
