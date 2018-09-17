@@ -10,9 +10,14 @@ const CID = require('cids');
 const MIME_TYPE_BYTERANGES = 'multipart/byteranges';
 const MIME_TYPE_OCTET_STREAM = 'application/octet-stream';
 const MIME_TYPE_JSON = 'application/json';
+const MIME_TYPE_HTML = 'text/html';
 const HEADERS_CONTENT_TYPE = 'Content-Type';
 const HEADERS_CONTENT_LENGTH = 'Content-Length';
 const HEADERS_CONTENT_RANGE = 'Content-Range';
+const DATA_TYPE_MD = 'MD';
+const DATA_TYPE_IMMD = 'IMMD';
+const DATA_TYPE_NFS = 'NFS';
+const DATA_TYPE_RDF = 'RDF';
 
 // Helper function to fetch the Container
 // treating the public ID container as an RDF
@@ -36,7 +41,7 @@ async function readPublicIdAsRdf(servicesContainer, pubName, servName) {
     throw makeError(error.code, error.message);
   }
 
-  return { serviceMd, type: 'RDF' };
+  return { serviceMd, type: DATA_TYPE_RDF };
 }
 
 // Helper function to fetch the Container
@@ -71,7 +76,7 @@ async function getContainerFromPublicId(pubName, servName) {
     serviceMd = await this.mutableData.newPublic(serviceInfo.buf, consts.TAG_TYPE_WWW);
   }
 
-  return { serviceMd, type: 'NFS' };
+  return { serviceMd, type: DATA_TYPE_NFS };
 }
 
 // Helper function to try different paths to find and
@@ -219,12 +224,12 @@ async function getContainerFromCid(cidString, typeTag) {
       // console.log('VALID MD CID - MULTIHASH:', address);
       content = await this.mutableData.newPublic(address, typeTag);
       await content.getEntries();
-      type = 'MD';
+      type = DATA_TYPE_MD;
     } else {
       // then it's supposed to be an ImmutableData
       // console.log('VALID ImmD CID - MULTIHASH:', address);
       content = await this.immutableData.fetch(address);
-      type = 'ImmD';
+      type = DATA_TYPE_IMMD;
     }
   } catch (err) {
     // only if it was looking up specifically for a MD thru a CID
@@ -267,20 +272,20 @@ async function fetch(url) {
     try {
       const content = await getContainerFromCid.call(this, publicName,
                                                       parseInt(parsedUrl.port, 10));
-      if (content.type === 'MD') {
+      if (content.type === DATA_TYPE_MD) {
         return {
           content: content.content,
-          type: 'NFS',
+          type: DATA_TYPE_NFS,
           path,
           originalPath,
           mimeType: content.codec
         };
       }
-      // content.type === 'ImmD'
+      // content.type === DATA_TYPE_IMMD
       // we simply then return the ImmD object so the content can be read
       return {
         content: content.content,
-        type: 'ImmD',
+        type: DATA_TYPE_IMMD,
         // path: we ignore any path provided as it's a file
         originalPath,
         mimeType: content.codec
@@ -307,6 +312,136 @@ async function fetch(url) {
   };
 }
 
+async function genFilesExplorerHtml(url, entriesList, nfsEmulation) {
+  const filesTreeInfo = {};
+  const getFilesInfo = entriesList.reduce((list, entry) => {
+    // skip soft-deleted entries and metadata
+    if (entry.value.buf.length === 0
+        || entry.key.toString() === consts.pubConsts.MD_METADATA_KEY) {
+      return list;
+    }
+    const name = entry.key.toString();
+    const version = entry.value.version;
+
+    // TODO: make it more efficient as it's doing a GET for each file
+    list.push(nfsEmulation.fetch(name)
+      .then((file) => file.size().then((size) => {
+        const subfolders = name.split('/');
+        let leaf = filesTreeInfo;
+        subfolders.forEach((subfolder, index) => {
+          if (index < subfolders.length - 1) {
+            if (!leaf[subfolder]) leaf[subfolder] = {};
+            leaf = leaf[subfolder];
+          } else {
+            leaf[subfolder] = {
+              isFile: true,
+              size: size * 1024,
+              version,
+              modified: file.modified,
+            };
+          }
+        });
+      })));
+    return list;
+  }, []);
+  await Promise.all(getFilesInfo);
+
+  let tbody = '';
+  const walkTree = (tree, depth, path) => {
+    Object.keys(tree).forEach((item) => {
+      const fileInfo = tree[item];
+      if (fileInfo.isFile) {
+        let size;
+        if (fileInfo.size > 1048576) {
+          size = `${Math.floor(fileInfo.size / 1048576)}.${(fileInfo.size % 1048576).toString().slice(0, 2)} MiB`;
+        } else {
+          size = (fileInfo.size > 1024)
+            ? `${Math.floor(fileInfo.size / 1024)}.${(fileInfo.size % 1024).toString().slice(0, 1)} KiB`
+            : `${fileInfo.size} B`;
+        }
+        tbody += `
+          <tr>
+            <td style="padding-left: ${depth}em">
+              <a class="icon file" href="${url}${path}${item}">${item}</a>
+            </td>
+            <td class="detailsColumn">${fileInfo.isFile ? size : ''}</td>
+            <td class="detailsColumn">${fileInfo.isFile ? fileInfo.version : ''}</td>
+            <td class="detailsColumn">${fileInfo.isFile ? fileInfo.modified : ''}</td>
+          </tr>`;
+      } else {
+        tbody += `
+          <tr>
+            <td style="padding-left: ${depth}em">
+              <span class="icon dir">${item}</span>
+            </td>
+          </tr>`;
+        walkTree(fileInfo, depth + 1, `${path}${item}/`);
+      }
+    });
+  };
+  walkTree(filesTreeInfo, 0, '');
+
+  const htmlPage = `
+    <html>
+      <head>
+        <title>Files Container at ${url}</title>
+        <style>
+          h2 {
+            border-bottom: 1px solid #c0c0c0;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            white-space: nowrap;
+          }
+
+          td.detailsColumn {
+            -webkit-padding-start: 2em;
+            text-align: end;
+            white-space: nowrap;
+          }
+
+          td {
+            padding-right: 5px;
+          }
+
+          .file {
+            background : url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAABnRSTlMAAAAAAABupgeRAAABHUlEQVR42o2RMW7DIBiF3498iHRJD5JKHurL+CRVBp+i2T16tTynF2gO0KSb5ZrBBl4HHDBuK/WXACH4eO9/CAAAbdvijzLGNE1TVZXfZuHg6XCAQESAZXbOKaXO57eiKG6ft9PrKQIkCQqFoIiQFBGlFIB5nvM8t9aOX2Nd18oDzjnPgCDpn/BH4zh2XZdlWVmWiUK4IgCBoFMUz9eP6zRN75cLgEQhcmTQIbl72O0f9865qLAAsURAAgKBJKEtgLXWvyjLuFsThCSstb8rBCaAQhDYWgIZ7myM+TUBjDHrHlZcbMYYk34cN0YSLcgS+wL0fe9TXDMbY33fR2AYBvyQ8L0Gk8MwREBrTfKe4TpTzwhArXWi8HI84h/1DfwI5mhxJamFAAAAAElFTkSuQmCC ") left top no-repeat;
+          }
+
+          .dir {
+            background : url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAd5JREFUeNqMU79rFUEQ/vbuodFEEkzAImBpkUabFP4ldpaJhZXYm/RiZWsv/hkWFglBUyTIgyAIIfgIRjHv3r39MePM7N3LcbxAFvZ2b2bn22/mm3XMjF+HL3YW7q28YSIw8mBKoBihhhgCsoORot9d3/ywg3YowMXwNde/PzGnk2vn6PitrT+/PGeNaecg4+qNY3D43vy16A5wDDd4Aqg/ngmrjl/GoN0U5V1QquHQG3q+TPDVhVwyBffcmQGJmSVfyZk7R3SngI4JKfwDJ2+05zIg8gbiereTZRHhJ5KCMOwDFLjhoBTn2g0ghagfKeIYJDPFyibJVBtTREwq60SpYvh5++PpwatHsxSm9QRLSQpEVSd7/TYJUb49TX7gztpjjEffnoVw66+Ytovs14Yp7HaKmUXeX9rKUoMoLNW3srqI5fWn8JejrVkK0QcrkFLOgS39yoKUQe292WJ1guUHG8K2o8K00oO1BTvXoW4yasclUTgZYJY9aFNfAThX5CZRmczAV52oAPoupHhWRIUUAOoyUIlYVaAa/VbLbyiZUiyFbjQFNwiZQSGl4IDy9sO5Wrty0QLKhdZPxmgGcDo8ejn+c/6eiK9poz15Kw7Dr/vN/z6W7q++091/AQYA5mZ8GYJ9K0AAAAAASUVORK5CYII= ") left top no-repeat;
+          }
+
+          .icon {
+            -webkit-padding-start: 1.5em;
+            text-decoration: none;
+          }
+
+          .icon:hover.file {
+            text-decoration: underline;
+          }
+        </style>
+      </head>
+      <body>
+        <h2>Files Container at ${url}</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Size</th>
+              <th>Version</th>
+              <th>Date Modified</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tbody}
+          </tbody>
+        </table>
+      </body>
+    </html>`;
+
+  return htmlPage;
+}
+
 /**
 * @typedef {Object} WebFetchOptions
 * holds additional options for the `webFetch` function.
@@ -331,14 +466,14 @@ async function fetch(url) {
 */
 async function webFetch(url, options) {
   const { content, type, path, originalPath, mimeType } = await fetch.call(this, url);
-  if (type === 'RDF') {
-    const emulation = await content.emulateAs('RDF');
-    await emulation.nowOrWhenFetched();
+  if (type === DATA_TYPE_RDF) {
+    const rdfEmulation = await content.emulateAs('RDF');
+    await rdfEmulation.nowOrWhenFetched();
 
     // TODO: support qvalue in the Accept header with multile mime types and weights
     const reqMimeType = (options && options.accept) ? options.accept : 'text/turtle';
 
-    const serialisedRdf = await emulation.serialise(reqMimeType);
+    const serialisedRdf = await rdfEmulation.serialise(reqMimeType);
     const response = {
       headers: {
         [HEADERS_CONTENT_TYPE]: reqMimeType,
@@ -347,17 +482,18 @@ async function webFetch(url, options) {
       body: serialisedRdf
     };
     return response;
-  } else if (type === 'ImmD') {
+  } else if (type === DATA_TYPE_IMMD) {
     const data = await readContentFromFile(content, mimeType, options);
     return data;
   }
 
   // then it's expected to be an NFS container
+  let nfsEmulation;
   try {
-    const emulation = await content.emulateAs('NFS');
+    nfsEmulation = await content.emulateAs('NFS');
     const { file, mimeType: fileMimeType } =
-                      await tryDifferentPaths(emulation.fetch.bind(emulation), path);
-    const openedFile = await emulation.open(file, consts.pubConsts.NFS_FILE_MODE_READ);
+                      await tryDifferentPaths(nfsEmulation.fetch.bind(nfsEmulation), path);
+    const openedFile = await nfsEmulation.open(file, consts.pubConsts.NFS_FILE_MODE_READ);
     const data = await readContentFromFile(openedFile, fileMimeType, options);
     return data;
   } catch (err) {
@@ -366,25 +502,42 @@ async function webFetch(url, options) {
       throw (err);
     }
 
-    // then let's just return it as a raw list of MutableData's entries
     const entries = await content.getEntries();
     const entriesList = await entries.listEntries();
-    const mdObj = {};
-    // TODO: confirm this will be ok for any type of data stored in MD entries,
-    // e.g. binary data or different charset encodings, etc.
-    entriesList.forEach((entry) => {
-      const key = entry.key.toString();
-      const value = entry.value.buf.toString();
-      const version = entry.value.version;
-      mdObj[key] = { value, version };
-    });
+    let response;
 
-    const response = {
-      headers: {
-        [HEADERS_CONTENT_TYPE]: MIME_TYPE_JSON
-      },
-      body: mdObj
-    };
+    // It seems it's an NFS container which doesn't have an index.html file
+    // then let's try to return a file browser html page
+    try {
+      const body = await genFilesExplorerHtml(url, entriesList, nfsEmulation);
+
+      response = {
+        headers: {
+          [HEADERS_CONTENT_TYPE]: MIME_TYPE_HTML
+        },
+        body
+      };
+    } catch (_) {
+      // otherwise, if we cannot read it as a Files Container, it's a simple MD,
+      // then let's just return it as a raw list of MutableData's entries
+      const mdObj = {};
+      // TODO: confirm this will be ok for any type of data stored in MD entries,
+      // e.g. binary data or different charset encodings, etc.
+      entriesList.forEach((entry) => {
+        const key = entry.key.toString();
+        const value = entry.value.buf.toString();
+        const version = entry.value.version;
+        mdObj[key] = { value, version };
+      });
+
+      response = {
+        headers: {
+          [HEADERS_CONTENT_TYPE]: MIME_TYPE_JSON
+        },
+        body: mdObj
+      };
+    }
+
     return response;
   }
 }

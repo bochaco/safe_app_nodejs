@@ -507,7 +507,7 @@ describe('Browsing', () => {
     });
   });
 
-  describe('WebFetch with CAS URL', () => {
+  describe('WebFetch with XOR URL', () => {
     const TYPE_TAG = 41000;
 
     it('valid MD CID for non existing content, rejected', async () =>
@@ -591,6 +591,14 @@ describe('Browsing', () => {
         headers: { 'Content-Type': 'application/json' },
         body: { key1: { value, version: 0 } }
       });
+    });
+
+    it('returns a file explorer html page when no index.html found', async () => {
+      const md = await app.mutableData.newRandomPublic(TYPE_TAG);
+      await md.quickSetup();
+      const info = await md.getNameAndTag();
+      const data = await unregisteredApp.webFetch(`safe://${info.cid.toUpperCase()}:${info.typeTag}`);
+      return should(data.headers).eql({ 'Content-Type': 'text/html' });
     });
 
     it('valid ImmD CID', async () => {
