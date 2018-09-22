@@ -9,7 +9,6 @@ const CID = require('cids');
 
 const MIME_TYPE_BYTERANGES = 'multipart/byteranges';
 const MIME_TYPE_OCTET_STREAM = 'application/octet-stream';
-const MIME_TYPE_JSON = 'application/json';
 const MIME_TYPE_HTML = 'text/html';
 const HEADERS_CONTENT_TYPE = 'Content-Type';
 const HEADERS_CONTENT_LENGTH = 'Content-Length';
@@ -442,6 +441,115 @@ async function genFilesExplorerHtml(url, entriesList, nfsEmulation) {
   return htmlPage;
 }
 
+async function genMDExplorerHtml(url, md) {
+  const entries = await md.getEntries();
+  const entriesList = await entries.listEntries();
+  let tbody = '';
+
+  // TODO: confirm this will be ok for any type of data stored in MD entries,
+  // e.g. binary data or different charset encodings, etc.
+  entriesList.forEach((entry) => {
+    const key = entry.key.toString();
+    const version = entry.value.version;
+    let value;
+    if (entry.value.buf.length > 0) {
+      value = entry.value.buf.toString();
+      value = value.replace(/safe:\/\/[^\s^"]*/gi, (str) => (`<a href='${str}'>${str}</a>`));
+    } else {
+      value = '<i>-- entry deleted --</i>';
+    }
+    tbody += `
+      <tr>
+        <td class="detailsColumn">${key}</td>
+        <td class="detailsColumn">${version}</td>
+        <td class="detailsColumn">${value}</td>
+      </tr>`;
+  });
+
+  const perms = await md.getPermissions();
+  const permsSetList = await perms.listPermissionSets();
+  const getPermsInfo = permsSetList.map((perm) => perm.signKey.getRaw()
+      .then((raw) => ({ permSet: perm.permSet, signKey: raw.buffer.toString('hex') }))
+  );
+  const permsList = await Promise.all(getPermsInfo);
+  let tperms = '';
+
+  /* eslint-disable dot-notation */
+  permsList.forEach((perm) => {
+    tperms += `
+      <tr>
+        <td class="detailsColumn">
+          <input type="checkbox" disabled ${perm.permSet['Read'] ? 'checked' : ''}>Read
+          <input type="checkbox" disabled ${perm.permSet['Insert'] ? 'checked' : ''}>Insert<br/>
+          <input type="checkbox" disabled ${perm.permSet['Update'] ? 'checked' : ''}>Update
+          <input type="checkbox" disabled ${perm.permSet['Delete'] ? 'checked' : ''}>Delete<br/>
+          <input type="checkbox" disabled ${perm.permSet['ManagePermissions'] ? 'checked' : ''}>Manage Permissions
+        </td>
+        <td class="detailsColumn">0x${perm.signKey}</td>
+      </tr>`;
+  });
+  /* eslint-enable dot-notation */
+
+  const htmlPage = `
+    <html>
+      <head>
+        <title>MutableData at ${url}</title>
+        <style>
+          h2 {
+            border-bottom: 1px solid #c0c0c0;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            white-space: nowrap;
+          }
+
+          tr:nth-child(odd) {
+              background-color: #dddddd;
+          }
+
+          td.detailsColumn {
+            -webkit-padding-start: 1em;
+            -webkit-padding-end: 1em;
+            white-space: nowrap;
+          }
+
+          td {
+            padding-right: 5px;
+          }
+        </style>
+      </head>
+      <body>
+        <h2>MutableData at ${url}</h2>
+        <h3>Entries:</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Key</th>
+              <th>Version</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tbody}
+          </tbody>
+        </table>
+        <h3>Permissions:</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Permissions Set</th>
+              <th>Sign Key</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tperms}
+          </tbody>
+        </table>
+      </body>
+    </html>`;
+
+  return htmlPage;
+}
+
 /**
 * @typedef {Object} WebFetchOptions
 * holds additional options for the `webFetch` function.
@@ -502,41 +610,26 @@ async function webFetch(url, options) {
       throw (err);
     }
 
-    const entries = await content.getEntries();
-    const entriesList = await entries.listEntries();
-    let response;
-
     // It seems it's an NFS container which doesn't have an index.html file
     // then let's try to return a file browser html page
+    let body;
     try {
-      const body = await genFilesExplorerHtml(url, entriesList, nfsEmulation);
-
-      response = {
-        headers: {
-          [HEADERS_CONTENT_TYPE]: MIME_TYPE_HTML
-        },
-        body
-      };
+      const entries = await content.getEntries();
+      const entriesList = await entries.listEntries();
+      body = await genFilesExplorerHtml(url, entriesList, nfsEmulation);
     } catch (_) {
       // otherwise, if we cannot read it as a Files Container, it's a simple MD,
       // then let's just return it as a raw list of MutableData's entries
-      const mdObj = {};
-      // TODO: confirm this will be ok for any type of data stored in MD entries,
-      // e.g. binary data or different charset encodings, etc.
-      entriesList.forEach((entry) => {
-        const key = entry.key.toString();
-        const value = entry.value.buf.toString();
-        const version = entry.value.version;
-        mdObj[key] = { value, version };
-      });
-
-      response = {
-        headers: {
-          [HEADERS_CONTENT_TYPE]: MIME_TYPE_JSON
-        },
-        body: mdObj
-      };
+      // ... or maybe as an html page to see the entries and follow links...
+      body = await genMDExplorerHtml(url, content);
     }
+
+    const response = {
+      headers: {
+        [HEADERS_CONTENT_TYPE]: MIME_TYPE_HTML
+      },
+      body
+    };
 
     return response;
   }

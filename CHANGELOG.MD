@@ -7,6 +7,7 @@
 - The ImmutableData `close` function of the `Writer` accepts an additional `getCid` boolean arg to signal if the [CID](https://github.com/ipld/cid) shall also be generated and returned along with the xor name in an object: `{ name: <xor addr>, cid: <cid string> }`
 - The ImmutableData `close` function of the `Writer` accepts the `mimeType` additional arg to be used as the codec in the [CID](https://github.com/ipld/cid) generated and returned
 - The `webFetch` function returns a files explorer HTML page when the target location is an NFS container with no `index.html` file
+- The `webFetch` function returns a MutableData entries visualiser when the target location is a MD
 - The object returned by the `fetch` function now includes the `originalPath` and `mimeType` attributes, and the attribute `serviceMd` was renamed to `content`
 
 ## SAFE libraries Dependencies
