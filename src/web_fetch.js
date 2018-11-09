@@ -186,37 +186,6 @@ const readContentFromFile = async (openedFile, defaultMimeType, opts) => {
   return response;
 };
 
-async function fetch(url) {
-  if (!url) return Promise.reject(makeError(errConst.MISSING_URL.code, errConst.MISSING_URL.msg));
-
-  const parsedUrl = parseUrl(url);
-
-  if (!parsedUrl.protocol) return Promise.reject(makeError(errConst.INVALID_URL.code, `${errConst.INVALID_URL.msg}, complete with protocol.`));
-
-  const hostname = parsedUrl.hostname;
-  let path = parsedUrl.pathname ? decodeURI(parsedUrl.pathname) : '';
-  const tokens = path.split('/');
-  if (!tokens[tokens.length - 1] && tokens.length > 1) {
-    tokens.pop();
-    tokens.push(consts.INDEX_HTML);
-  }
-
-  path = tokens.join('/') || `/${consts.INDEX_HTML}`;
-  // lets' unpack
-  const hostParts = hostname.split('.');
-  const publicName = hostParts.pop(); // last one is 'domain'
-  const serviceName = hostParts.join('.'); // all others are 'service'
-
-  // Let's try to find the container and read
-  // its content using the helpers functions
-  const md = await getContainerFromPublicId.call(this, publicName, serviceName);
-  return {
-    serviceMd: md.serviceMd,
-    type: md.type,
-    path
-  };
-}
-
 /**
 * Helper to lookup a given `safe://`-url in accordance with the
 * convention and find the requested object.
@@ -227,8 +196,34 @@ async function fetch(url) {
 async function fetch(url) {
   /* eslint-disable no-shadow, prefer-arrow-callback */
   return EXPOSE_AS_EXPERIMENTAL_API.call(this, async function fetch() {
-    // implementation of fetch function goes here
-    return url;
+    if (!url) return Promise.reject(makeError(errConst.MISSING_URL.code, errConst.MISSING_URL.msg));
+
+    const parsedUrl = parseUrl(url);
+
+    if (!parsedUrl.protocol) return Promise.reject(makeError(errConst.INVALID_URL.code, `${errConst.INVALID_URL.msg}, complete with protocol.`));
+
+    const hostname = parsedUrl.hostname;
+    let path = parsedUrl.pathname ? decodeURI(parsedUrl.pathname) : '';
+    const tokens = path.split('/');
+    if (!tokens[tokens.length - 1] && tokens.length > 1) {
+      tokens.pop();
+      tokens.push(consts.INDEX_HTML);
+    }
+
+    path = tokens.join('/') || `/${consts.INDEX_HTML}`;
+    // lets' unpack
+    const hostParts = hostname.split('.');
+    const publicName = hostParts.pop(); // last one is 'domain'
+    const serviceName = hostParts.join('.'); // all others are 'service'
+
+    // Let's try to find the container and read
+    // its content using the helpers functions
+    const md = await getContainerFromPublicId.call(this, publicName, serviceName);
+    return {
+      serviceMd: md.serviceMd,
+      type: md.type,
+      path
+    };
   });
 }
 
