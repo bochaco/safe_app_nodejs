@@ -14,6 +14,7 @@
 const NFS = require('./nfs');
 const RDF = require('./rdf');
 const WEBID = require('./web_id');
+const AD = require('./ad');
 
 /**
 * Emulations are abstraction helpers on top of MData
@@ -25,5 +26,6 @@ const WEBID = require('./web_id');
 module.exports = {
   NFS,
   RDF,
-  WEBID
+  WEBID,
+  AD
 };
