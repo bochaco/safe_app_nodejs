@@ -51,20 +51,25 @@ describe('Experimental AD emulation', () => {
     return should(rdf2).not.be.undefined();
   });
 
-  it.skip('append version to AD', async () => {
+  it('append version to AD', async () => {
     await ad.append('value-version-0');
     await ad.append('value-version-1');
+    let val = await ad.fetch(0);
+    should(val).be.equal('value-version-0');
   });
 
-  it.skip('append MAX_ENTRIES+1 versions', async () => {
+  it('append MAX_ENTRIES+1 versions', async () => {
     await ad.append('value-version-0');
     await ad.append('value-version-1');
     await ad.append('value-version-2');
     // next append should create a second AD chunk
     await ad.append('value-version-3');
+
+    let val = await ad.fetch(2);
+    should(val).be.equal('value-version-2');
   });
 
-  it.skip('append MAX_ENTRIES+1 versions', async () => {
+  it('append (MAX_ENTRIES*N)+1 versions', async () => {
     await ad.append('value-version-0');
     await ad.append('value-version-1');
     await ad.append('value-version-2');
@@ -78,22 +83,27 @@ describe('Experimental AD emulation', () => {
     await ad.append('value-version-8');
 
     await ad.append('value-version-9');
+
+    let val = await ad.fetch(1);
+    should(val).be.equal('value-version-1');
   });
 
-  it.only('get versions', async () => {
+  it('get all versions', async () => {
     const numOfVersions = 12;
-    for (let v = 0; v <= numOfVersions; v++) {
+    for (let v = 0; v < numOfVersions; v++) {
       await ad.append(`value-version-${v}`);
     }
 
-    for (let v = 0; v <= numOfVersions; v++) {
+    for (let v = 0; v < numOfVersions; v++) {
       let val = await ad.fetch(v);
-      console.log("VALUE AT VERSION", v, ":", val);
+      // console.log("VALUE AT VERSION", v, ":", val);
+      should(val).be.equal(`value-version-${v}`);
     }
 
     console.log("Fetching latest version...");
     let val = await ad.fetch();
-    console.log("VALUE AT LATEST VERSION:", val);
+    // console.log("VALUE AT LATEST VERSION:", val);
+    should(val).be.equal(`value-version-${numOfVersions-1}`);
 
   }).timeout(100000);
 

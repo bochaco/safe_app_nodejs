@@ -18,12 +18,12 @@ const { EXPOSE_AS_EXPERIMENTAL_API } = require('../../helpers');
 const AD_TYPE_TAG = 15555;
 const AD_METADATA = '_ad_metadata';
 const AD_MAX_ENTRIES = 3; // 999;
+const AD_NUM_OF_CHILDREN = 3;
 const initRootADMetadata = {
   versionRangeEnd: -1,
   availableSlots: AD_MAX_ENTRIES,
   latestVersion: undefined,
-  prev: undefined,
-  next2Prev: undefined,
+  children: [],
 };
 
 /**
@@ -98,8 +98,10 @@ class AD {
 
       // new values for the root AD chunk metadata
       updatedADMetadata.availableSlots = AD_MAX_ENTRIES - 1;
-      updatedADMetadata.prev = newChunkXorUrl;
-      updatedADMetadata.next2Prev = rootADMetadata.prev;
+      updatedADMetadata.children.unshift(newChunkXorUrl); // add new link to the front
+      if (updatedADMetadata.children.length > AD_NUM_OF_CHILDREN) { // keep a fixed max amount of children
+        updatedADMetadata.children.pop(); // remove the oldest
+      }
     }
 
     // store new data in a new ImD
@@ -136,36 +138,42 @@ class AD {
   async fetch(version) {
     const metadata = await this.rootAData.get(AD_METADATA);
     let rootADMetadata = JSON.parse(metadata.buf);
-    if (!version) {
+    if (version != 0 && !version) {
       version = rootADMetadata.versionRangeEnd;
     }
+
     if (version < 0 || version > rootADMetadata.versionRangeEnd) {
       return Error("version doesn't exist");
     }
 
     let curMd = this.rootAData;
+    let curADMetadata = rootADMetadata;
     let hops = 1;
-    // traverse the `prev` and `next2Prev` pointers until we
-    // find the chunk which contains the version we are looking for
-    while (rootADMetadata.versionRangeEnd - AD_MAX_ENTRIES >= version) {
-      if (rootADMetadata.versionRangeEnd - (2 * AD_MAX_ENTRIES) > version) {
-        // the version is not in the previous chunk, so jump back
-        // to the next to previous chunk
-        console.log("GETTING NEXT2PREV:", rootADMetadata.next2Prev);
-        const md = await this.rootAData.app.fetch(rootADMetadata.next2Prev);
+    // traverse the children pointers until we find the
+    // chunk which contains the version we are looking for
+    while (version <= curADMetadata.versionRangeEnd - AD_MAX_ENTRIES) { // while version is not in current AD chunk
+      let numOfCurChildren = curADMetadata.children.length;
+      let minVerImmediateChildren = numOfCurChildren * AD_MAX_ENTRIES;
+      if (version <= curADMetadata.versionRangeEnd - minVerImmediateChildren) {
+        // version is in last child or in any of its own children
+        let oldestChild = curADMetadata.children[numOfCurChildren - 1];
+        // console.log("GETTING OLDEST ->", oldestChild);
+        const md = await this.rootAData.app.fetch(oldestChild);
         curMd = md.content;
       } else {
-        // the version is the previous chunk, jump to it and we are done traversing
-        console.log("GETTING PREV:", rootADMetadata.prev);
-        const md = await this.rootAData.app.fetch(rootADMetadata.prev);
+        // the version is one of the current children, jump to it and we are done traversing
+        let pickedChildIndex = Math.floor((curADMetadata.versionRangeEnd - version) / AD_MAX_ENTRIES) - 1;
+        let pickedChild = curADMetadata.children[pickedChildIndex];
+        // console.log("GETTING CHILD #", pickedChildIndex,"->", pickedChild);
+        const md = await this.rootAData.app.fetch(pickedChild);
         curMd = md.content;
       }
       hops += 1;
       // let's get the metadata for the current AD chunk
       const metadata = await curMd.get(AD_METADATA);
-      rootADMetadata = JSON.parse(metadata.buf);
+      curADMetadata = JSON.parse(metadata.buf);
     }
-    console.log("NUMBER OF HOPS MADE:", hops)
+    // console.log("NUMBER OF HOPS MADE:", hops)
 
     // ok, we have the AD chunk which holds the version we are looking for,
     // let's just find out the offset to know which entry holds the link to the data
