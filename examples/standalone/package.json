@@ -11,6 +11,7 @@
     "mdata_private": "cross-env NODE_ENV=test node scripts/mdata_private",
     "mdata_public": "cross-env NODE_ENV=test node scripts/mdata_public",
     "soak_test": "cross-env NODE_ENV=test node scripts/soak_test",
+    "authorisation": "cross-env NODE_ENV=test node scripts/authorisation",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
